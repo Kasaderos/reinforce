@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-EPISODE_LEN = 28 
+EPISODE_LEN = 60 
 
 # exponential moving average
 def ema(data, window = 14):
@@ -52,14 +52,12 @@ def get_state(y, v1, v2):
         return 6
     
 def generator_episodes(y):
-    ema14 = ema(y, 14)
-    ema28 = ema(y, 28)
     while True:
         i = np.random.randint(0, len(y)-EPISODE_LEN) 
 
         yi = y[i:i+EPISODE_LEN]
-        ema14i = ema14[i:i+EPISODE_LEN]
-        ema28i = ema28[i:i+EPISODE_LEN]
+        ema14i = ema(yi, 14)
+        ema28i = ema(yi, 28)
 
         yield Episode(yi, ema14i, ema28i) 
 
@@ -74,6 +72,40 @@ def get_v(s):
 
     return V[s]
 
+class SampleEpisode:
+    
+    def __init__(self, max_episodes = 5):
+        self.episodes = []
+        self.ptr = 0
+        self.max_episodes = max_episodes
+
+    def add_episode(self, episode):
+        if len(self.episodes) >= self.max_episodes:
+            return
+        self.episodes.append(episode)
+
+    def plot(self):
+        self.ptr += 1 
+        if self.ptr >= len(self.episodes):
+            self.ptr = 0
+        e = self.episodes[self.ptr]
+        x = np.arange(EPISODE_LEN)
+        fig, ax = plt.subplots()
+
+        y = e.y 
+        v1 = e.I1 
+        v2 = e.I2 
+        for i in range(EPISODE_LEN-1):
+            if y[i] > v1[i] and y[i] > v2[i] and v1[i] > v2[i]: 
+                ax.plot([x[i], x[i+1]], [y[i], y[i+1]], color='green')
+            else:
+                ax.plot([x[i], x[i+1]], [y[i], y[i+1]], color='red')
+                
+        ax.plot(x, v1, 'k--', label='I1')
+        ax.plot(x, v2, 'b--', label='I2')
+        ax.legend(loc='best')
+        plt.show()
+
 # train RL TD(0) algorithm
 def train():
     M = 1000
@@ -82,6 +114,9 @@ def train():
     lag = 14 # weekdays
     for i in range(M):
         episode = next(gen_episode)
+        if M > 500:
+            sample.add_episode(episode)
+
         t = 0
         for i in range(lag, EPISODE_LEN):
             frame = episode.get_frame(t)
@@ -106,8 +141,11 @@ x = np.arange(len(y))
 
 ema14 = ema(y, 14)
 ema28 = ema(y, 28)
+sample = SampleEpisode()
 
 gen_episode = generator_episodes(y)
+
+# signals = get_signals()
 
 train()
 
@@ -115,6 +153,8 @@ train()
 V = {k: V[k] for k in sorted(V)}
 
 print(V)
+sample.plot()
+sample.plot()
 
 
 plt.plot(x, y)

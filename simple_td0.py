@@ -96,7 +96,7 @@ class SampleEpisode:
         v1 = e.I1 
         v2 = e.I2 
         for i in range(EPISODE_LEN-1):
-            if y[i] > v1[i] and y[i] > v2[i] and v1[i] > v2[i]: 
+            if v1[i] < v2[i] and v1[i] > y[i] and v2[i] > y[i]: 
                 ax.plot([x[i], x[i+1]], [y[i], y[i+1]], color='green')
             else:
                 ax.plot([x[i], x[i+1]], [y[i], y[i+1]], color='red')
@@ -111,7 +111,7 @@ def train():
     M = 1000
     alpha = 0.5
     gamma = 1.0
-    lag = 14 # weekdays
+    lag = 5 # weekdays
     for i in range(M):
         episode = next(gen_episode)
         if M > 500:
@@ -161,3 +161,8 @@ plt.plot(x, y)
 plt.plot(x, ema14)
 plt.plot(x, ema28)
 plt.show()
+
+'''
+a * b * c
+
+'''
